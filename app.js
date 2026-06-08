@@ -429,13 +429,6 @@ async function savePDF(data) {
   }
 }
 
-/* ─── PDF ─── */
-function savePDF(data) {
-  const printArea = document.getElementById('print-area');
-  printArea.innerHTML = buildReportHTML(data, true);
-  window.print();
-  setTimeout(() => { printArea.innerHTML = ''; }, 3000);
-}
 
 /* ─── Image PNG / JPEG ─── */
 async function saveImage(data, format) {
