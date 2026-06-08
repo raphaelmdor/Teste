@@ -5,17 +5,16 @@ let taskCount = 0;
 let planCount = 0;
 
 /* ─── DOM refs ─── */
-const form            = document.getElementById('report-form');
-const tasksContainer  = document.getElementById('tasks-container');
-const plansContainer  = document.getElementById('plans-container');
-const formPanel       = document.getElementById('form-panel');
-const previewPanel    = document.getElementById('preview-panel');
-const previewContent  = document.getElementById('preview-content');
-const statusBadge     = document.getElementById('status-badge');
-const hoursStart      = document.getElementById('hours-start');
-const hoursEnd        = document.getElementById('hours-end');
-const hoursTotal      = document.getElementById('hours-total');
-const toast           = document.getElementById('toast');
+const form           = document.getElementById('report-form');
+const tasksContainer = document.getElementById('tasks-container');
+const plansContainer = document.getElementById('plans-container');
+const previewPanel   = document.getElementById('preview-panel');
+const previewContent = document.getElementById('preview-content');
+const statusBadge    = document.getElementById('status-badge');
+const hoursStart     = document.getElementById('hours-start');
+const hoursEnd       = document.getElementById('hours-end');
+const hoursTotal     = document.getElementById('hours-total');
+const toast          = document.getElementById('toast');
 
 /* ─── Init ─── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,21 +28,55 @@ function bindEvents() {
   document.getElementById('btn-add-task').addEventListener('click', addTask);
   document.getElementById('btn-add-plan').addEventListener('click', addPlan);
   document.getElementById('btn-preview').addEventListener('click', showPreview);
-  document.getElementById('btn-save').addEventListener('click', saveDoc);
-  document.getElementById('btn-save-from-preview').addEventListener('click', saveDoc);
   document.getElementById('btn-close-preview').addEventListener('click', closePreview);
   document.getElementById('btn-clear').addEventListener('click', clearForm);
   hoursStart.addEventListener('change', calcHours);
   hoursEnd.addEventListener('change', calcHours);
+
+  document.getElementById('btn-save-toggle').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleMenu('save-menu', 'btn-save-toggle');
+  });
+  document.getElementById('btn-save-preview-toggle').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleMenu('save-menu-preview', 'btn-save-preview-toggle');
+  });
+  document.getElementById('save-menu').addEventListener('click', e => {
+    const btn = e.target.closest('.save-option');
+    if (btn) { closeAllMenus(); saveAs(btn.dataset.format); }
+  });
+  document.getElementById('save-menu-preview').addEventListener('click', e => {
+    const btn = e.target.closest('.save-option');
+    if (btn) { closeAllMenus(); saveAs(btn.dataset.format); }
+  });
+  document.addEventListener('click', closeAllMenus);
+}
+
+/* ─── Dropdown ─── */
+function toggleMenu(menuId, toggleId) {
+  const menu   = document.getElementById(menuId);
+  const toggle = document.getElementById(toggleId);
+  const isOpen = !menu.classList.contains('hidden');
+  closeAllMenus();
+  if (!isOpen) {
+    menu.classList.remove('hidden');
+    toggle.querySelector('.chevron-icon')?.classList.add('open');
+  }
+}
+
+function closeAllMenus() {
+  ['save-menu', 'save-menu-preview'].forEach(id => {
+    document.getElementById(id)?.classList.add('hidden');
+  });
+  document.querySelectorAll('.chevron-icon').forEach(el => el.classList.remove('open'));
 }
 
 /* ─── Task rows ─── */
 function addTask() {
   taskCount++;
-  const id = taskCount;
   const row = document.createElement('div');
   row.className = 'task-row';
-  row.dataset.id = id;
+  row.dataset.id = taskCount;
   row.innerHTML = `
     <input type="text" class="task-desc" placeholder="Descrição da tarefa…" />
     <input type="number" class="task-hours" min="0" max="24" step="0.5" placeholder="h" title="Horas dedicadas" />
@@ -90,9 +123,9 @@ function calcHours() {
 /* ─── Collect data ─── */
 function collectData() {
   const tasks = [...tasksContainer.querySelectorAll('.task-row')].map(row => ({
-    desc:    row.querySelector('.task-desc').value.trim(),
-    hours:   row.querySelector('.task-hours').value || '—',
-    status:  row.querySelector('.status-select').value,
+    desc:   row.querySelector('.task-desc').value.trim(),
+    hours:  row.querySelector('.task-hours').value || '—',
+    status: row.querySelector('.status-select').value,
   })).filter(t => t.desc);
 
   const plans = [...plansContainer.querySelectorAll('.plan-row input')]
@@ -115,24 +148,29 @@ function collectData() {
 
 /* ─── Validate ─── */
 function validate(data) {
-  if (!data.date) { showToast('Informe a data do relatório.', 'error'); return false; }
-  if (!data.name) { showToast('Informe o nome do colaborador.', 'error'); return false; }
+  if (!data.date)         { showToast('Informe a data do relatório.', 'error');      return false; }
+  if (!data.name)         { showToast('Informe o nome do colaborador.', 'error');    return false; }
   if (!data.tasks.length) { showToast('Adicione ao menos uma tarefa realizada.', 'error'); return false; }
   return true;
 }
 
-/* ─── Format helpers ─── */
+/* ─── Helpers ─── */
 function fmtDate(str) {
   if (!str) return '—';
   const [y, m, d] = str.split('-');
   return `${d}/${m}/${y}`;
 }
 
+function makeFilename(data, ext) {
+  const safeName = (data.name || 'relatorio').replace(/\s+/g, '_').toLowerCase();
+  return `relatorio_${safeName}_${data.date.replace(/-/g, '')}.${ext}`;
+}
+
 const statusLabel = { done: 'Concluída', prog: 'Em andamento', blocked: 'Bloqueada' };
 const statusClass = { done: 'status-done', prog: 'status-prog', blocked: 'status-blocked' };
 
-/* ─── Build HTML report ─── */
-function buildReportHTML(data, forDoc = false) {
+/* ─── Build report HTML ─── */
+function buildReportHTML(data, forExport = false) {
   const now = new Date().toLocaleString('pt-BR');
 
   const tasksRows = data.tasks.map(t => `
@@ -149,12 +187,13 @@ function buildReportHTML(data, forDoc = false) {
   const hoursBlock = (data.hoursStart || data.hoursEnd || data.hoursTotal) ? `
     <div class="rp-hours">
       ${data.hoursStart ? `<span><strong>Entrada</strong>${data.hoursStart}</span>` : ''}
-      ${data.hoursEnd   ? `<span><strong>Saída</strong>${data.hoursEnd}</span>`   : ''}
-      ${data.hoursTotal ? `<span><strong>Total</strong>${data.hoursTotal}h</span>` : ''}
+      ${data.hoursEnd   ? `<span><strong>Saída</strong>${data.hoursEnd}</span>`     : ''}
+      ${data.hoursTotal ? `<span><strong>Total</strong>${data.hoursTotal}h</span>`  : ''}
     </div>` : '<p class="rp-empty">Não informado.</p>';
 
-  const docStyles = forDoc ? `<style>
-    body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1e293b;margin:0;padding:0}
+  const exportStyles = forExport ? `<style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body,div{font-family:Segoe UI,Calibri,Arial,sans-serif;font-size:11pt;color:#1e293b}
     .report-preview{max-width:700px;margin:0 auto;padding:32px 40px}
     .rp-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #4F6EF7}
     .rp-header h1{font-size:16pt;color:#4F6EF7;margin-bottom:4px}
@@ -170,30 +209,28 @@ function buildReportHTML(data, forDoc = false) {
     .status-done{background:#dcfce7;color:#166534}
     .status-prog{background:#dbeafe;color:#1d4ed8}
     .status-blocked{background:#fee2e2;color:#991b1b}
-    .rp-list{list-style:none;margin:0;padding:0}
-    .rp-list li{padding:5px 0 5px 18px;position:relative;border-bottom:1px solid #f1f5f9}
+    .rp-list{list-style:none;padding:0}
+    .rp-list li{padding:5px 0 5px 18px;position:relative;border-bottom:1px solid #f1f5f9;font-size:10pt}
     .rp-list li::before{content:"›";position:absolute;left:4px;color:#4F6EF7;font-weight:700}
-    .rp-text{background:#f1f5f9;border-radius:7px;padding:10px 14px;white-space:pre-wrap}
+    .rp-text{background:#f1f5f9;border-radius:7px;padding:10px 14px;white-space:pre-wrap;font-size:10pt}
     .rp-empty{color:#64748b;font-style:italic}
     .rp-hours{display:flex;gap:24px;padding:12px 16px;background:#f1f5f9;border-radius:8px}
     .rp-hours span strong{display:block;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;color:#64748b}
     .rp-footer{margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8pt;color:#64748b}
   </style>` : '';
 
-  return `${docStyles}
+  return `${exportStyles}
   <div class="report-preview">
     <div class="rp-header">
       <h1>Relatório de Atividades Diário</h1>
       <p>Gerado em ${now}</p>
     </div>
-
     <div class="rp-meta">
       <div class="rp-meta-item"><strong>Data</strong>${fmtDate(data.date)}</div>
       <div class="rp-meta-item"><strong>Colaborador</strong>${escHtml(data.name) || '—'}</div>
       ${data.department ? `<div class="rp-meta-item"><strong>Departamento</strong>${escHtml(data.department)}</div>` : ''}
       ${data.project    ? `<div class="rp-meta-item"><strong>Projeto / Cliente</strong>${escHtml(data.project)}</div>` : ''}
     </div>
-
     <div class="rp-section">
       <h2>Tarefas Realizadas</h2>
       <table class="rp-task-table">
@@ -201,30 +238,23 @@ function buildReportHTML(data, forDoc = false) {
         <tbody>${tasksRows}</tbody>
       </table>
     </div>
-
     <div class="rp-section">
       <h2>Problemas / Bloqueios</h2>
-      ${data.blockers
-        ? `<div class="rp-text">${escHtml(data.blockers)}</div>`
-        : '<p class="rp-empty">Nenhum bloqueio reportado.</p>'}
+      ${data.blockers ? `<div class="rp-text">${escHtml(data.blockers)}</div>` : '<p class="rp-empty">Nenhum bloqueio reportado.</p>'}
     </div>
-
     <div class="rp-section">
       <h2>Plano para Amanhã</h2>
       <ul class="rp-list">${planItems}</ul>
     </div>
-
     ${data.notes ? `
     <div class="rp-section">
       <h2>Observações Gerais</h2>
       <div class="rp-text">${escHtml(data.notes)}</div>
     </div>` : ''}
-
     <div class="rp-section">
       <h2>Horas Trabalhadas</h2>
       ${hoursBlock}
     </div>
-
     <div class="rp-footer">
       <span>${escHtml(data.name)} — ${fmtDate(data.date)}</span>
       <span>Relatório Diário</span>
@@ -245,11 +275,18 @@ function closePreview() {
   previewPanel.classList.add('hidden');
 }
 
-/* ─── Save .doc ─── */
-function saveDoc() {
+/* ─── Save dispatcher ─── */
+async function saveAs(format) {
   const data = collectData();
   if (!validate(data)) return;
+  if (format === 'doc')  { saveWord(data); return; }
+  if (format === 'pdf')  { savePDF(data);  return; }
+  if (format === 'png')  { await saveImage(data, 'png');  return; }
+  if (format === 'jpeg') { await saveImage(data, 'jpeg'); return; }
+}
 
+/* ─── Word ─── */
+function saveWord(data) {
   const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office"
       xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -257,58 +294,105 @@ function saveDoc() {
 <head>
   <meta charset="UTF-8"/>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-  <!--[if gte mso 9]>
-  <xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
-  <![endif]-->
+  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
   <title>Relatório Diário — ${fmtDate(data.date)}</title>
 </head>
 <body>${buildReportHTML(data, true)}</body>
 </html>`;
 
-  const blob = new Blob(['﻿' + html], {
-    type: 'application/msword;charset=utf-8'
-  });
+  const blob = new Blob(['﻿' + html], { type: 'application/msword;charset=utf-8' });
+  shareOrDownload(blob, makeFilename(data, 'doc'), 'application/msword');
+}
 
-  const safeName = (data.name || 'relatorio').replace(/\s+/g, '_').toLowerCase();
-  const dateStr  = data.date.replace(/-/g, '');
-  const filename = `relatorio_${safeName}_${dateStr}.doc`;
+/* ─── PDF ─── */
+function savePDF(data) {
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = buildReportHTML(data, true);
+  window.print();
+  setTimeout(() => { printArea.innerHTML = ''; }, 3000);
+}
 
-  const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
-
-  if (isIOS && navigator.share) {
-    const file = new File([blob], filename, { type: 'application/msword' });
-    const canShare = navigator.canShare && navigator.canShare({ files: [file] });
-
-    if (canShare) {
-      navigator.share({ files: [file], title: 'Relatório Diário' })
-        .then(() => {
-          statusBadge.textContent = 'Salvo';
-          statusBadge.classList.add('saved');
-          showToast('Relatório compartilhado!', 'success');
-        })
-        .catch(err => { if (err.name !== 'AbortError') showToast('Erro ao compartilhar.', 'error'); });
-      return;
-    }
-
-    // Fallback iOS: abre em nova aba para salvar manualmente
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    showToast('Use o botão Compartilhar do Safari para salvar.', 'success');
+/* ─── Image PNG / JPEG ─── */
+async function saveImage(data, format) {
+  if (typeof html2canvas === 'undefined') {
+    showToast('Biblioteca não carregada. Recarregue a página.', 'error');
     return;
   }
 
-  // Desktop: download padrão
+  const overlay = showLoading('Gerando imagem…');
+
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute;left:-9999px;top:0;width:720px;background:#fff;';
+  container.innerHTML = buildReportHTML(data, true);
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    });
+
+    const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const quality  = format === 'jpeg' ? 0.92 : undefined;
+    const ext      = format === 'jpeg' ? 'jpg' : 'png';
+
+    canvas.toBlob(blob => {
+      hideLoading(overlay);
+      shareOrDownload(blob, makeFilename(data, ext), mimeType);
+      markSaved();
+    }, mimeType, quality);
+
+  } catch {
+    hideLoading(overlay);
+    showToast('Erro ao gerar imagem.', 'error');
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+/* ─── Share or Download ─── */
+function shareOrDownload(blob, filename, mimeType) {
+  const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+
+  if (isIOS && navigator.share) {
+    const file = new File([blob], filename, { type: mimeType });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Relatório Diário' })
+        .then(() => { markSaved(); showToast('Compartilhado com sucesso!', 'success'); })
+        .catch(err => { if (err.name !== 'AbortError') showToast('Erro ao compartilhar.', 'error'); });
+      return;
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a   = document.createElement('a');
-  a.href    = url;
+  a.href     = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  markSaved();
+  showToast('Arquivo salvo com sucesso!', 'success');
+}
 
+function markSaved() {
   statusBadge.textContent = 'Salvo';
   statusBadge.classList.add('saved');
-  showToast('Relatório salvo com sucesso!', 'success');
+}
+
+/* ─── Loading overlay ─── */
+function showLoading(msg) {
+  const el = document.createElement('div');
+  el.className = 'loading-overlay';
+  el.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>${msg}</span></div>`;
+  document.body.appendChild(el);
+  return el;
+}
+
+function hideLoading(el) {
+  if (el?.parentNode) el.parentNode.removeChild(el);
 }
 
 /* ─── Clear ─── */
@@ -338,5 +422,5 @@ function showToast(msg, type = '') {
 
 /* ─── Escape HTML ─── */
 function escHtml(str) {
-  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

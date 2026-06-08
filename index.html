@@ -26,10 +26,31 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             Visualizar
           </button>
-          <button class="btn btn-primary" id="btn-save">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Salvar .doc
-          </button>
+          <div class="save-wrapper" id="save-wrapper">
+            <button class="btn btn-primary" id="btn-save-toggle">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Salvar
+              <svg class="chevron-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="save-menu hidden" id="save-menu">
+              <button class="save-option" data-format="doc">
+                <span class="save-opt-icon word">W</span>
+                <span class="save-opt-label"><strong>Word</strong><small>Arquivo .doc</small></span>
+              </button>
+              <button class="save-option" data-format="pdf">
+                <span class="save-opt-icon pdf">PDF</span>
+                <span class="save-opt-label"><strong>PDF</strong><small>Via impressão</small></span>
+              </button>
+              <button class="save-option" data-format="png">
+                <span class="save-opt-icon img">PNG</span>
+                <span class="save-opt-label"><strong>Imagem PNG</strong><small>Alta qualidade</small></span>
+              </button>
+              <button class="save-option" data-format="jpeg">
+                <span class="save-opt-icon img">JPG</span>
+                <span class="save-opt-label"><strong>Imagem JPEG</strong><small>Menor tamanho</small></span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -82,9 +103,7 @@
                 </span>
                 Tarefas Realizadas
               </h3>
-              <div id="tasks-container">
-                <!-- Tasks injected by JS -->
-              </div>
+              <div id="tasks-container"></div>
               <button type="button" class="btn-add" id="btn-add-task">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Adicionar tarefa
@@ -100,7 +119,7 @@
                 Problemas / Bloqueios
               </h3>
               <div class="form-group">
-                <textarea id="blockers" name="blockers" rows="3" placeholder="Descreva impedimentos, dificuldades ou riscos encontrados… (deixe em branco se não houver)"></textarea>
+                <textarea id="blockers" name="blockers" rows="3" placeholder="Descreva impedimentos, dificuldades ou riscos… (deixe em branco se não houver)"></textarea>
               </div>
             </section>
 
@@ -169,19 +188,44 @@
           </div>
           <div id="preview-content" class="report-preview"></div>
           <div class="preview-footer">
-            <button class="btn btn-primary" id="btn-save-from-preview">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Salvar como .doc
-            </button>
+            <div class="save-wrapper" id="save-wrapper-preview">
+              <button class="btn btn-primary" id="btn-save-preview-toggle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Salvar como…
+                <svg class="chevron-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="save-menu save-menu-up hidden" id="save-menu-preview">
+                <button class="save-option" data-format="doc">
+                  <span class="save-opt-icon word">W</span>
+                  <span class="save-opt-label"><strong>Word</strong><small>Arquivo .doc</small></span>
+                </button>
+                <button class="save-option" data-format="pdf">
+                  <span class="save-opt-icon pdf">PDF</span>
+                  <span class="save-opt-label"><strong>PDF</strong><small>Via impressão</small></span>
+                </button>
+                <button class="save-option" data-format="png">
+                  <span class="save-opt-icon img">PNG</span>
+                  <span class="save-opt-label"><strong>Imagem PNG</strong><small>Alta qualidade</small></span>
+                </button>
+                <button class="save-option" data-format="jpeg">
+                  <span class="save-opt-icon img">JPG</span>
+                  <span class="save-opt-label"><strong>Imagem JPEG</strong><small>Menor tamanho</small></span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </main>
 
+    <!-- Print area (hidden, used for PDF) -->
+    <div id="print-area"></div>
+
     <!-- Toast -->
     <div id="toast" class="toast"></div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
