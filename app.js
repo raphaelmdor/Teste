@@ -279,29 +279,151 @@ function closePreview() {
 async function saveAs(format) {
   const data = collectData();
   if (!validate(data)) return;
-  if (format === 'doc')  { saveWord(data); return; }
+  if (format === 'doc')  { await saveWord(data); return; }
   if (format === 'pdf')  { savePDF(data);  return; }
   if (format === 'png')  { await saveImage(data, 'png');  return; }
   if (format === 'jpeg') { await saveImage(data, 'jpeg'); return; }
 }
 
-/* ─── Word ─── */
-function saveWord(data) {
-  const html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-  <meta charset="UTF-8"/>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
-  <title>Relatório Diário — ${fmtDate(data.date)}</title>
-</head>
-<body>${buildReportHTML(data, true)}</body>
-</html>`;
+/* ─── Word (.docx real) ─── */
+async function saveWord(data) {
+  if (typeof docx === 'undefined') {
+    showToast('Biblioteca Word não carregada. Recarregue a página.', 'error');
+    return;
+  }
 
-  const blob = new Blob(['﻿' + html], { type: 'application/msword;charset=utf-8' });
-  shareOrDownload(blob, makeFilename(data, 'doc'), 'application/msword');
+  const overlay = showLoading('Gerando documento Word…');
+
+  try {
+    const {
+      Document, Paragraph, TextRun, Table, TableRow, TableCell,
+      AlignmentType, WidthType, BorderStyle, ShadingType, Packer,
+    } = docx;
+
+    const PRIMARY  = '4F6EF7';
+    const LIGHT_BG = 'F1F5F9';
+    const MUTED    = '64748B';
+
+    const sectionHead = text => new Paragraph({
+      children: [new TextRun({ text: text.toUpperCase(), bold: true, color: PRIMARY, size: 20 })],
+      spacing: { before: 300, after: 140 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: PRIMARY } },
+    });
+
+    const cell = (children, shade) => new TableCell({
+      children,
+      ...(shade ? { shading: { type: ShadingType.CLEAR, fill: shade } } : {}),
+    });
+
+    const metaFields = [
+      ['DATA', fmtDate(data.date)],
+      ['COLABORADOR', data.name],
+      ...(data.department ? [['DEPARTAMENTO', data.department]] : []),
+      ...(data.project    ? [['PROJETO', data.project]]          : []),
+    ];
+
+    const taskHeaderRow = new TableRow({
+      tableHeader: true,
+      children: [
+        cell([new Paragraph({ children: [new TextRun({ text: 'DESCRIÇÃO', bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
+        cell([new Paragraph({ children: [new TextRun({ text: 'HORAS',     bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
+        cell([new Paragraph({ children: [new TextRun({ text: 'STATUS',    bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
+      ],
+    });
+
+    const taskRows = data.tasks.map(t => new TableRow({
+      children: [
+        cell([new Paragraph(t.desc)]),
+        cell([new Paragraph({ children: [new TextRun(t.hours)], alignment: AlignmentType.CENTER })]),
+        cell([new Paragraph(statusLabel[t.status])]),
+      ],
+    }));
+
+    const children = [
+      new Paragraph({
+        children: [new TextRun({ text: 'Relatório de Atividades Diário', bold: true, color: PRIMARY, size: 48 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: `Gerado em ${new Date().toLocaleString('pt-BR')}`, color: MUTED, size: 18 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 360 },
+      }),
+
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [new TableRow({
+          children: metaFields.map(([label, value]) => new TableCell({
+            shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
+            children: [
+              new Paragraph({ children: [new TextRun({ text: label, bold: true, color: MUTED, size: 16 })] }),
+              new Paragraph({ children: [new TextRun({ text: value || '—', size: 20 })] }),
+            ],
+          })),
+        })],
+      }),
+
+      sectionHead('Tarefas Realizadas'),
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [taskHeaderRow, ...taskRows],
+      }),
+
+      sectionHead('Problemas / Bloqueios'),
+      new Paragraph({
+        children: [new TextRun({
+          text: data.blockers || 'Nenhum bloqueio reportado.',
+          italics: !data.blockers,
+          color: data.blockers ? undefined : MUTED,
+        })],
+        ...(data.blockers ? { shading: { type: ShadingType.CLEAR, fill: LIGHT_BG } } : {}),
+      }),
+
+      sectionHead('Plano para Amanhã'),
+      ...(data.plans.length
+        ? data.plans.map(p => new Paragraph({ children: [new TextRun(`› ${p}`)], spacing: { after: 80 } }))
+        : [new Paragraph({ children: [new TextRun({ text: 'Nenhum item informado.', italics: true, color: MUTED })] })]),
+
+      ...(data.notes ? [
+        sectionHead('Observações Gerais'),
+        new Paragraph({
+          children: [new TextRun(data.notes)],
+          shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
+        }),
+      ] : []),
+
+      sectionHead('Horas Trabalhadas'),
+      new Paragraph({
+        children: [
+          ...(data.hoursStart ? [new TextRun({ text: `Entrada: ${data.hoursStart}    `, bold: true })] : []),
+          ...(data.hoursEnd   ? [new TextRun({ text: `Saída: ${data.hoursEnd}    `,    bold: true })] : []),
+          ...(data.hoursTotal ? [new TextRun({ text: `Total: ${data.hoursTotal}h`,     bold: true })] : []),
+          ...(!data.hoursStart && !data.hoursEnd
+            ? [new TextRun({ text: 'Não informado.', italics: true, color: MUTED })] : []),
+        ],
+        shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
+      }),
+
+      new Paragraph({
+        children: [new TextRun({ text: `${data.name} — ${fmtDate(data.date)}`, color: MUTED, size: 18 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 480 },
+        border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'E2E8F0' } },
+      }),
+    ];
+
+    const document = new Document({ sections: [{ children }] });
+    const blob     = await Packer.toBlob(document);
+
+    hideLoading(overlay);
+    shareOrDownload(blob, makeFilename(data, 'docx'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    markSaved();
+  } catch (e) {
+    hideLoading(overlay);
+    console.error(e);
+    showToast('Erro ao gerar documento Word.', 'error');
+  }
 }
 
 /* ─── PDF ─── */
