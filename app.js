@@ -222,7 +222,7 @@ function buildReportHTML(data, forExport = false) {
   return `${exportStyles}
   <div class="report-preview">
     <div class="rp-header">
-      <h1>Relatório de Atividades Diário</h1>
+      <h1>Relatório de Atividades Diárias</h1>
       <p>Gerado em ${now}</p>
     </div>
     <div class="rp-meta">
@@ -279,172 +279,153 @@ function closePreview() {
 async function saveAs(format) {
   const data = collectData();
   if (!validate(data)) return;
-  if (format === 'doc')  { await saveWord(data); return; }
+  if (format === 'doc')  { saveWord(data); return; }
   if (format === 'pdf')  { savePDF(data);  return; }
   if (format === 'png')  { await saveImage(data, 'png');  return; }
   if (format === 'jpeg') { await saveImage(data, 'jpeg'); return; }
 }
 
-/* ─── Carrega docx.js sob demanda ─── */
-function loadDocxLib() {
-  if (typeof docx !== 'undefined') return Promise.resolve(true);
-  const CDNS = [
-    'https://unpkg.com/docx@8.2.2/build/index.js',
-    'https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.js',
-  ];
-  const tryLoad = (urls) => {
-    if (!urls.length) return Promise.resolve(false);
-    return new Promise(resolve => {
-      const s = document.createElement('script');
-      s.src     = urls[0];
-      s.onload  = () => resolve(true);
-      s.onerror = () => tryLoad(urls.slice(1)).then(resolve);
-      document.head.appendChild(s);
-    });
-  };
-  return tryLoad(CDNS);
+/* ─── Word (RTF — sem dependência externa) ─── */
+function saveWord(data) {
+  const blob = new Blob([buildRTF(data)], { type: 'application/rtf' });
+  shareOrDownload(blob, makeFilename(data, 'rtf'), 'application/rtf');
+  markSaved();
 }
 
-/* ─── Word (.docx real) ─── */
-async function saveWord(data) {
-  const overlay = showLoading('Carregando biblioteca Word…');
-  const ready   = await loadDocxLib();
+function buildRTF(data) {
+  const now = new Date().toLocaleString('pt-BR');
+
+  const r = str => String(str ?? '').split('').map(ch => {
+    if (ch === '\\') return '\\\\';
+    if (ch === '{')  return '\\{';
+    if (ch === '}')  return '\\}';
+    if (ch === '\n') return '\\line ';
+    const c = ch.charCodeAt(0);
+    return c > 127 ? `\\u${c}?` : ch;
+  }).join('');
+
+  let s = '';
+  s += '{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang1046\r\n';
+  s += '{\\fonttbl{\\f0\\froman\\fcharset0 Calibri;}}\r\n';
+  s += '{\\colortbl;\\red79\\green110\\blue247;\\red100\\green116\\blue139;\\red241\\green245\\blue249;\\red30\\green41\\blue59;}\r\n';
+  s += '\\f0\\fs22\\cf4\r\n';
+
+  s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
+  s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\\par\r\n';
+  s += '\\pard\\brdrb\\brdrs\\brdrw10\\brsp20 \\par\r\n';
+
+  s += '\\pard{\\b\\fs20\\cf1 ' + r('IDENTIFICAÇÃO') + '}\\par\r\n';
+  s += '\\pard\\li200 {\\b ' + r('Data:') + '} ' + r(fmtDate(data.date)) + '   ';
+  s += '{\\b ' + r('Colaborador:') + '} ' + r(data.name);
+  if (data.department) s += '   {\\b ' + r('Departamento:') + '} ' + r(data.department);
+  if (data.project)    s += '   {\\b ' + r('Projeto:') + '} ' + r(data.project);
+  s += '\\par\\par\r\n';
+
+  s += '\\pard{\\b\\fs20\\cf1 ' + r('TAREFAS REALIZADAS') + '}\\par\r\n';
+  data.tasks.forEach((t, i) => {
+    s += '\\pard\\li200 {\\b ' + r(`${i + 1}.`) + '} ' + r(t.desc);
+    s += ' {\\cf2 | ' + r(t.hours) + 'h | ' + r(statusLabel[t.status]) + '}\\par\r\n';
+  });
+  s += '\\par\r\n';
+
+  s += '\\pard{\\b\\fs20\\cf1 ' + r('PROBLEMAS / BLOQUEIOS') + '}\\par\r\n';
+  s += '\\pard\\li200 ';
+  s += data.blockers ? r(data.blockers) : '{\\i\\cf2 ' + r('Nenhum bloqueio reportado.') + '}';
+  s += '\\par\\par\r\n';
+
+  s += '\\pard{\\b\\fs20\\cf1 ' + r('PLANO PARA AMANHÃ') + '}\\par\r\n';
+  if (data.plans.length) {
+    data.plans.forEach(p => { s += '\\pard\\li400\\fi-200 \\bullet  ' + r(p) + '\\par\r\n'; });
+  } else {
+    s += '\\pard\\li200{\\i\\cf2 ' + r('Nenhum item informado.') + '}\\par\r\n';
+  }
+  s += '\\par\r\n';
+
+  if (data.notes) {
+    s += '\\pard{\\b\\fs20\\cf1 ' + r('OBSERVAÇÕES GERAIS') + '}\\par\r\n';
+    s += '\\pard\\li200 ' + r(data.notes) + '\\par\\par\r\n';
+  }
+
+  s += '\\pard{\\b\\fs20\\cf1 ' + r('HORAS TRABALHADAS') + '}\\par\r\n';
+  s += '\\pard\\li200 ';
+  if (data.hoursStart || data.hoursEnd || data.hoursTotal) {
+    if (data.hoursStart) s += '{\\b ' + r('Entrada:') + '} ' + r(data.hoursStart) + '   ';
+    if (data.hoursEnd)   s += '{\\b ' + r('Saída:') + '} ' + r(data.hoursEnd) + '   ';
+    if (data.hoursTotal) s += '{\\b ' + r('Total:') + '} ' + r(data.hoursTotal) + 'h';
+  } else {
+    s += '{\\i\\cf2 ' + r('Não informado.') + '}';
+  }
+  s += '\\par\\par\r\n';
+
+  s += '\\pard\\brdrt\\brdrs\\brdrw10\\brsp20 \\par\r\n';
+  s += '\\pard\\qc{\\fs18\\cf2 ' + r(data.name) + ' \\endash  ' + r(fmtDate(data.date)) + '}\\par\r\n';
+  s += '}';
+  return s;
+}
+
+/* ─── PDF com jsPDF + html2canvas ─── */
+function loadJsPDF() {
+  if (typeof jspdf !== 'undefined') return Promise.resolve(true);
+  return new Promise(resolve => {
+    const s  = document.createElement('script');
+    s.src    = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
+async function savePDF(data) {
+  const overlay = showLoading('Carregando biblioteca PDF…');
+  const ready   = await loadJsPDF();
   if (!ready) {
     hideLoading(overlay);
-    showToast('Não foi possível carregar a biblioteca Word. Verifique sua conexão.', 'error');
+    showToast('Erro ao carregar biblioteca PDF. Verifique sua conexão.', 'error');
     return;
   }
-  overlay.querySelector('span').textContent = 'Gerando documento…';
+  overlay.querySelector('span').textContent = 'Gerando PDF…';
+
+  const container = document.createElement('div');
+  container.style.cssText = 'position:absolute;left:-9999px;top:0;width:720px;background:#fff;';
+  container.innerHTML = buildReportHTML(data, true);
+  document.body.appendChild(container);
 
   try {
-    const {
-      Document, Paragraph, TextRun, Table, TableRow, TableCell,
-      AlignmentType, WidthType, BorderStyle, ShadingType, Packer,
-    } = docx;
-
-    const PRIMARY  = '4F6EF7';
-    const LIGHT_BG = 'F1F5F9';
-    const MUTED    = '64748B';
-
-    const sectionHead = text => new Paragraph({
-      children: [new TextRun({ text: text.toUpperCase(), bold: true, color: PRIMARY, size: 20 })],
-      spacing: { before: 300, after: 140 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: PRIMARY } },
+    const canvas = await html2canvas(container, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
     });
+    document.body.removeChild(container);
 
-    const cell = (children, shade) => new TableCell({
-      children,
-      ...(shade ? { shading: { type: ShadingType.CLEAR, fill: shade } } : {}),
-    });
+    const { jsPDF } = jspdf;
+    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW   = pdf.internal.pageSize.getWidth();
+    const pageH   = pdf.internal.pageSize.getHeight();
+    const imgW    = pageW;
+    const imgH    = (canvas.height * imgW) / canvas.width;
+    const imgData = canvas.toDataURL('image/png');
 
-    const metaFields = [
-      ['DATA', fmtDate(data.date)],
-      ['COLABORADOR', data.name],
-      ...(data.department ? [['DEPARTAMENTO', data.department]] : []),
-      ...(data.project    ? [['PROJETO', data.project]]          : []),
-    ];
+    let remaining = imgH;
+    let srcY      = 0;
 
-    const taskHeaderRow = new TableRow({
-      tableHeader: true,
-      children: [
-        cell([new Paragraph({ children: [new TextRun({ text: 'DESCRIÇÃO', bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
-        cell([new Paragraph({ children: [new TextRun({ text: 'HORAS',     bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
-        cell([new Paragraph({ children: [new TextRun({ text: 'STATUS',    bold: true, color: PRIMARY, size: 18 })] })], 'EEF1FE'),
-      ],
-    });
+    pdf.addImage(imgData, 'PNG', 0, srcY, imgW, imgH);
+    remaining -= pageH;
 
-    const taskRows = data.tasks.map(t => new TableRow({
-      children: [
-        cell([new Paragraph(t.desc)]),
-        cell([new Paragraph({ children: [new TextRun(t.hours)], alignment: AlignmentType.CENTER })]),
-        cell([new Paragraph(statusLabel[t.status])]),
-      ],
-    }));
+    while (remaining > 0) {
+      srcY = -(imgH - remaining);
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, srcY, imgW, imgH);
+      remaining -= pageH;
+    }
 
-    const children = [
-      new Paragraph({
-        children: [new TextRun({ text: 'Relatório de Atividades Diário', bold: true, color: PRIMARY, size: 48 })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: `Gerado em ${new Date().toLocaleString('pt-BR')}`, color: MUTED, size: 18 })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 360 },
-      }),
-
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [new TableRow({
-          children: metaFields.map(([label, value]) => new TableCell({
-            shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
-            children: [
-              new Paragraph({ children: [new TextRun({ text: label, bold: true, color: MUTED, size: 16 })] }),
-              new Paragraph({ children: [new TextRun({ text: value || '—', size: 20 })] }),
-            ],
-          })),
-        })],
-      }),
-
-      sectionHead('Tarefas Realizadas'),
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [taskHeaderRow, ...taskRows],
-      }),
-
-      sectionHead('Problemas / Bloqueios'),
-      new Paragraph({
-        children: [new TextRun({
-          text: data.blockers || 'Nenhum bloqueio reportado.',
-          italics: !data.blockers,
-          color: data.blockers ? undefined : MUTED,
-        })],
-        ...(data.blockers ? { shading: { type: ShadingType.CLEAR, fill: LIGHT_BG } } : {}),
-      }),
-
-      sectionHead('Plano para Amanhã'),
-      ...(data.plans.length
-        ? data.plans.map(p => new Paragraph({ children: [new TextRun(`› ${p}`)], spacing: { after: 80 } }))
-        : [new Paragraph({ children: [new TextRun({ text: 'Nenhum item informado.', italics: true, color: MUTED })] })]),
-
-      ...(data.notes ? [
-        sectionHead('Observações Gerais'),
-        new Paragraph({
-          children: [new TextRun(data.notes)],
-          shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
-        }),
-      ] : []),
-
-      sectionHead('Horas Trabalhadas'),
-      new Paragraph({
-        children: [
-          ...(data.hoursStart ? [new TextRun({ text: `Entrada: ${data.hoursStart}    `, bold: true })] : []),
-          ...(data.hoursEnd   ? [new TextRun({ text: `Saída: ${data.hoursEnd}    `,    bold: true })] : []),
-          ...(data.hoursTotal ? [new TextRun({ text: `Total: ${data.hoursTotal}h`,     bold: true })] : []),
-          ...(!data.hoursStart && !data.hoursEnd
-            ? [new TextRun({ text: 'Não informado.', italics: true, color: MUTED })] : []),
-        ],
-        shading: { type: ShadingType.CLEAR, fill: LIGHT_BG },
-      }),
-
-      new Paragraph({
-        children: [new TextRun({ text: `${data.name} — ${fmtDate(data.date)}`, color: MUTED, size: 18 })],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 480 },
-        border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'E2E8F0' } },
-      }),
-    ];
-
-    const document = new Document({ sections: [{ children }] });
-    const blob     = await Packer.toBlob(document);
-
+    const blob = pdf.output('blob');
     hideLoading(overlay);
-    shareOrDownload(blob, makeFilename(data, 'docx'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    shareOrDownload(blob, makeFilename(data, 'pdf'), 'application/pdf');
     markSaved();
   } catch (e) {
+    if (container.parentNode) document.body.removeChild(container);
     hideLoading(overlay);
     console.error(e);
-    showToast('Erro ao gerar documento Word.', 'error');
+    showToast('Erro ao gerar PDF.', 'error');
   }
 }
 
