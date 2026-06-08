@@ -273,6 +273,31 @@ function saveDoc() {
   const dateStr  = data.date.replace(/-/g, '');
   const filename = `relatorio_${safeName}_${dateStr}.doc`;
 
+  const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+
+  if (isIOS && navigator.share) {
+    const file = new File([blob], filename, { type: 'application/msword' });
+    const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+
+    if (canShare) {
+      navigator.share({ files: [file], title: 'Relatório Diário' })
+        .then(() => {
+          statusBadge.textContent = 'Salvo';
+          statusBadge.classList.add('saved');
+          showToast('Relatório compartilhado!', 'success');
+        })
+        .catch(err => { if (err.name !== 'AbortError') showToast('Erro ao compartilhar.', 'error'); });
+      return;
+    }
+
+    // Fallback iOS: abre em nova aba para salvar manualmente
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    showToast('Use o botão Compartilhar do Safari para salvar.', 'success');
+    return;
+  }
+
+  // Desktop: download padrão
   const url = URL.createObjectURL(blob);
   const a   = document.createElement('a');
   a.href    = url;
