@@ -285,14 +285,36 @@ async function saveAs(format) {
   if (format === 'jpeg') { await saveImage(data, 'jpeg'); return; }
 }
 
+/* ─── Carrega docx.js sob demanda ─── */
+function loadDocxLib() {
+  if (typeof docx !== 'undefined') return Promise.resolve(true);
+  const CDNS = [
+    'https://unpkg.com/docx@8.2.2/build/index.js',
+    'https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.js',
+  ];
+  const tryLoad = (urls) => {
+    if (!urls.length) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src     = urls[0];
+      s.onload  = () => resolve(true);
+      s.onerror = () => tryLoad(urls.slice(1)).then(resolve);
+      document.head.appendChild(s);
+    });
+  };
+  return tryLoad(CDNS);
+}
+
 /* ─── Word (.docx real) ─── */
 async function saveWord(data) {
-  if (typeof docx === 'undefined') {
-    showToast('Biblioteca Word não carregada. Recarregue a página.', 'error');
+  const overlay = showLoading('Carregando biblioteca Word…');
+  const ready   = await loadDocxLib();
+  if (!ready) {
+    hideLoading(overlay);
+    showToast('Não foi possível carregar a biblioteca Word. Verifique sua conexão.', 'error');
     return;
   }
-
-  const overlay = showLoading('Gerando documento Word…');
+  overlay.querySelector('span').textContent = 'Gerando documento…';
 
   try {
     const {
