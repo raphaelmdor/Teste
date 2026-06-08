@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório Diário</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#4F6EF7"/>
+            <path d="M8 10h16M8 16h16M8 22h10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+          <span>Relatório Diário</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" id="btn-clear" title="Limpar formulário">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+            Limpar
+          </button>
+          <button class="btn btn-secondary" id="btn-preview">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Visualizar
+          </button>
+          <button class="btn btn-primary" id="btn-save">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Salvar .doc
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="container">
+        <!-- Form Panel -->
+        <div class="panel form-panel" id="form-panel">
+          <div class="panel-header">
+            <h2>Novo Relatório</h2>
+            <span class="badge" id="status-badge">Rascunho</span>
+          </div>
+
+          <form id="report-form" novalidate>
+            <!-- Identificação -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                Identificação
+              </h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="date">Data <span class="required">*</span></label>
+                  <input type="date" id="date" name="date" required />
+                </div>
+                <div class="form-group">
+                  <label for="name">Colaborador <span class="required">*</span></label>
+                  <input type="text" id="name" name="name" placeholder="Nome completo" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="department">Departamento</label>
+                  <input type="text" id="department" name="department" placeholder="Ex: Desenvolvimento, TI, RH…" />
+                </div>
+                <div class="form-group">
+                  <label for="project">Projeto / Cliente</label>
+                  <input type="text" id="project" name="project" placeholder="Nome do projeto" />
+                </div>
+              </div>
+            </section>
+
+            <!-- Tarefas realizadas -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                </span>
+                Tarefas Realizadas
+              </h3>
+              <div id="tasks-container">
+                <!-- Tasks injected by JS -->
+              </div>
+              <button type="button" class="btn-add" id="btn-add-task">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar tarefa
+              </button>
+            </section>
+
+            <!-- Bloqueios -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </span>
+                Problemas / Bloqueios
+              </h3>
+              <div class="form-group">
+                <textarea id="blockers" name="blockers" rows="3" placeholder="Descreva impedimentos, dificuldades ou riscos encontrados… (deixe em branco se não houver)"></textarea>
+              </div>
+            </section>
+
+            <!-- Plano amanhã -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                Plano para Amanhã
+              </h3>
+              <div id="plans-container"></div>
+              <button type="button" class="btn-add" id="btn-add-plan">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar item
+              </button>
+            </section>
+
+            <!-- Observações -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </span>
+                Observações Gerais
+              </h3>
+              <div class="form-group">
+                <textarea id="notes" name="notes" rows="3" placeholder="Anotações adicionais, reuniões, feedbacks…"></textarea>
+              </div>
+            </section>
+
+            <!-- Horas -->
+            <section class="form-section">
+              <h3 class="section-title">
+                <span class="section-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                Horas Trabalhadas
+              </h3>
+              <div class="form-row narrow">
+                <div class="form-group">
+                  <label for="hours-start">Entrada</label>
+                  <input type="time" id="hours-start" name="hours-start" />
+                </div>
+                <div class="form-group">
+                  <label for="hours-end">Saída</label>
+                  <input type="time" id="hours-end" name="hours-end" />
+                </div>
+                <div class="form-group">
+                  <label for="hours-total">Total (h)</label>
+                  <input type="number" id="hours-total" name="hours-total" min="0" max="24" step="0.5" placeholder="0" readonly />
+                </div>
+              </div>
+            </section>
+          </form>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="panel preview-panel hidden" id="preview-panel">
+          <div class="panel-header">
+            <h2>Pré-visualização</h2>
+            <button class="btn btn-ghost btn-sm" id="btn-close-preview">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Fechar
+            </button>
+          </div>
+          <div id="preview-content" class="report-preview"></div>
+          <div class="preview-footer">
+            <button class="btn btn-primary" id="btn-save-from-preview">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Salvar como .doc
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
