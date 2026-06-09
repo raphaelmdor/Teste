@@ -537,6 +537,7 @@ function shareOrDownload(blob, filename, mimeType) {
 
 function markSaved() {
   statusBadge.textContent = 'Salvo';
+  statusBadge.classList.remove('hidden');
   statusBadge.classList.add('saved');
 }
 
@@ -565,7 +566,8 @@ function clearForm() {
   addTask();
   addPlan();
   closePreview();
-  statusBadge.textContent = 'Rascunho';
+  statusBadge.textContent = '';
+  statusBadge.classList.add('hidden');
   statusBadge.classList.remove('saved');
   showToast('Formulário limpo.');
 }

@@ -61,6 +61,11 @@ body {
 .header-logo { height: 36px; width: auto; max-width: 200px; object-fit: contain; object-position: left center; flex-shrink: 0; }
 .header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
+/* Título centralizado visível apenas no mobile */
+.page-title-mobile {
+  display: none;
+}
+
 /* ─── Buttons ─── */
 .btn {
   display: inline-flex;
@@ -488,6 +493,21 @@ textarea { resize: vertical; min-height: 80px; }
   .form-row.narrow { grid-template-columns: 1fr 1fr 1fr; }
   .header-actions .btn > span:not(.chevron-icon) { display: none; }
   .header-actions .btn { padding: 8px 10px; }
+}
+
+/* A partir de 700px: título sai do header e vai centralizado abaixo dele */
+@media (max-width: 700px) {
+  .logo > span { display: none; }
+  .page-title-mobile {
+    display: block;
+    text-align: center;
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+  }
 }
 
 /* Mobile (até 600px) */
