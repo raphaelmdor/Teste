@@ -478,9 +478,11 @@ textarea { resize: vertical; min-height: 80px; }
   .task-row input.task-hours, .task-row .status-select { width: 100%; }
 }
 @media (max-width: 600px) {
-  .logo > span { display: none; }
-  .header-logo { height: 30px; }
-  .header-inner { padding: 0 14px; gap: 10px; }
+  .header-inner { padding: 0 14px; gap: 8px; }
+  .logo { gap: 7px; font-size: .82rem; min-width: 0; flex: 1; overflow: hidden; }
+  .logo > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-logo { height: 24px; flex-shrink: 0; }
+  .header-actions { flex-shrink: 0; }
 }
 @media (max-width: 520px) {
   .main { padding: 16px 12px; }
