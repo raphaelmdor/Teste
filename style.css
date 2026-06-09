@@ -56,6 +56,7 @@ body {
   font-size: 1.05rem;
   color: var(--text);
 }
+.header-logo { height: 36px; width: auto; object-fit: contain; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
 /* ─── Buttons ─── */
