@@ -286,6 +286,7 @@ body {
 .form-group label { font-size: .82rem; font-weight: 600; color: var(--text); }
 .required { color: var(--danger); }
 
+/* Base styles shared by all fields */
 input[type="text"],
 input[type="date"],
 input[type="time"],
@@ -300,15 +301,23 @@ select {
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  /* Remove Safari inner shadow on inputs */
   -webkit-box-shadow: none;
   box-shadow: none;
   transition: border-color var(--transition), box-shadow var(--transition);
   outline: none;
 }
+
+/* appearance: none only on fields where it's safe — date/time excluded to
+   preserve the native iOS date/time picker and avoid icon layout issues */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
 input:focus, textarea:focus, select:focus {
   border-color: var(--primary);
   -webkit-box-shadow: 0 0 0 3px rgba(79,110,247,.13);
@@ -317,7 +326,7 @@ input:focus, textarea:focus, select:focus {
 input[readonly] { background: var(--bg); cursor: default; }
 textarea { resize: vertical; min-height: 80px; }
 
-/* Custom dropdown arrow for <select> (replaces native Safari arrow) */
+/* Custom dropdown arrow for <select> (replaces native Safari arrow removed by appearance:none) */
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -327,10 +336,31 @@ select {
   cursor: pointer;
 }
 
-/* Normalize date/time text color on Safari iOS */
+/* Safari: date/time — keep text left-aligned, push calendar/clock icon to right */
 input[type="date"],
 input[type="time"] {
   color: var(--text);
+  text-align: left;
+  display: -webkit-flex;
+  display: flex;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.55;
+  padding: 0;
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  padding: 0;
+  -webkit-flex: 1;
+  flex: 1;
+  text-align: left;
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
 }
 
 /* ─── Task / Plan rows ─── */
