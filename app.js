@@ -223,7 +223,7 @@ function buildReportHTML(data, forExport = false) {
     .rp-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #4F6EF7}
     .rp-header h1{font-size:16pt;color:#4F6EF7;margin-bottom:4px}
     .rp-header p{color:#64748b;font-size:9pt}
-    .rp-header-logo{height:28px;width:auto;display:block;margin:0 auto 10px;opacity:.85}
+    .rp-header-logo{height:28px;width:auto;display:inline-block;margin-bottom:10px;opacity:.85}
     .rp-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:20px;padding:14px 16px;background:#f1f5f9;border-radius:8px}
     .rp-meta-item strong{display:block;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:1px}
     .rp-section{margin-bottom:20px}
