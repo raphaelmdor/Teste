@@ -221,10 +221,9 @@ function buildReportHTML(data, forExport = false) {
     body,div{font-family:Segoe UI,Calibri,Arial,sans-serif;font-size:11pt;color:#1e293b}
     .report-preview{max-width:700px;margin:0 auto;padding:32px 40px}
     .rp-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #4F6EF7}
-    .rp-header-brand{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px}
-    .rp-header-brand img{height:44px;width:auto;display:block}
     .rp-header h1{font-size:16pt;color:#4F6EF7;margin-bottom:4px}
     .rp-header p{color:#64748b;font-size:9pt}
+    .rp-header-logo{height:28px;width:auto;display:block;margin:10px auto 0;opacity:.85}
     .rp-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:20px;padding:14px 16px;background:#f1f5f9;border-radius:8px}
     .rp-meta-item strong{display:block;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:1px}
     .rp-section{margin-bottom:20px}
@@ -248,17 +247,15 @@ function buildReportHTML(data, forExport = false) {
 
   const logoSrc   = forExport ? logoDataURL : 'logo.png';
   const logoHtml  = logoSrc
-    ? `<img src="${logoSrc}" alt="Convictiva Comunicação" style="height:44px;width:auto;display:block;" />`
+    ? `<img src="${logoSrc}" alt="Convictiva Comunicação" class="rp-header-logo" />`
     : '';
 
   return `${exportStyles}
   <div class="report-preview">
     <div class="rp-header">
-      <div class="rp-header-brand">
-        ${logoHtml}
-        <h1>Relatório de Atividades Diárias</h1>
-      </div>
+      <h1>Relatório de Atividades Diárias</h1>
       <p>Gerado em ${now}</p>
+      ${logoHtml}
     </div>
     <div class="rp-meta">
       <div class="rp-meta-item"><strong>Data</strong>${fmtDate(data.date)}</div>
@@ -345,15 +342,16 @@ function buildRTF(data) {
   s += '{\\colortbl;\\red79\\green110\\blue247;\\red100\\green116\\blue139;\\red241\\green245\\blue249;\\red30\\green41\\blue59;}\r\n';
   s += '\\f0\\fs22\\cf4\r\n';
 
+  s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
+  s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\r\n';
   if (logoPngHex && logoDims.w && logoDims.h) {
-    const twipsW = 3600;
+    const twipsW = 2200;
     const twipsH = Math.round(twipsW * logoDims.h / logoDims.w);
     s += `\\pard\\qc{\\pict\\pngblip\\picw${logoDims.w}\\pich${logoDims.h}\\picwgoal${twipsW}\\picgoal${twipsH}\r\n${logoPngHex}}\\par\r\n`;
   } else {
-    s += '\\pard\\qc{\\b\\fs24\\cf2 ' + r('Convictiva Comunicação') + '}\\par\r\n';
+    s += '\\pard\\qc{\\fs18\\cf2 ' + r('Convictiva Comunicação') + '}\\par\r\n';
   }
-  s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
-  s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\\par\r\n';
+  s += '\\par\r\n';
   s += '\\pard\\brdrb\\brdrs\\brdrw10\\brsp20 \\par\r\n';
 
   s += '\\pard{\\b\\fs20\\cf1 ' + r('IDENTIFICAÇÃO') + '}\\par\r\n';
