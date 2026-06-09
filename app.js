@@ -223,7 +223,7 @@ function buildReportHTML(data, forExport = false) {
     .rp-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #4F6EF7}
     .rp-header h1{font-size:16pt;color:#4F6EF7;margin-bottom:4px}
     .rp-header p{color:#64748b;font-size:9pt}
-    .rp-header-logo{height:28px;width:auto;display:block;margin:10px auto 0;opacity:.85}
+    .rp-header-logo{height:28px;width:auto;display:block;margin:0 auto 10px;opacity:.85}
     .rp-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:20px;padding:14px 16px;background:#f1f5f9;border-radius:8px}
     .rp-meta-item strong{display:block;font-size:8pt;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:1px}
     .rp-section{margin-bottom:20px}
@@ -253,9 +253,9 @@ function buildReportHTML(data, forExport = false) {
   return `${exportStyles}
   <div class="report-preview">
     <div class="rp-header">
+      ${logoHtml}
       <h1>Relatório de Atividades Diárias</h1>
       <p>Gerado em ${now}</p>
-      ${logoHtml}
     </div>
     <div class="rp-meta">
       <div class="rp-meta-item"><strong>Data</strong>${fmtDate(data.date)}</div>
@@ -342,15 +342,15 @@ function buildRTF(data) {
   s += '{\\colortbl;\\red79\\green110\\blue247;\\red100\\green116\\blue139;\\red241\\green245\\blue249;\\red30\\green41\\blue59;}\r\n';
   s += '\\f0\\fs22\\cf4\r\n';
 
-  s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
-  s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\r\n';
   if (logoPngHex && logoDims.w && logoDims.h) {
     const twipsW = 2200;
     const twipsH = Math.round(twipsW * logoDims.h / logoDims.w);
     s += `\\pard\\qc{\\pict\\pngblip\\picw${logoDims.w}\\pich${logoDims.h}\\picwgoal${twipsW}\\picgoal${twipsH}\r\n${logoPngHex}}\\par\r\n`;
   } else {
-    s += '\\pard\\qc{\\fs18\\cf2 ' + r('Convictiva Comunicação') + '}\\par\r\n';
+    s += '\\pard\\qc{\\b\\fs22\\cf2 ' + r('Convictiva Comunicação') + '}\\par\r\n';
   }
+  s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
+  s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\r\n';
   s += '\\par\r\n';
   s += '\\pard\\brdrb\\brdrs\\brdrw10\\brsp20 \\par\r\n';
 
