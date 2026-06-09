@@ -344,6 +344,8 @@ textarea { resize: vertical; min-height: 80px; }
 .report-preview { font-size: .9rem; }
 
 .rp-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--primary); }
+.rp-header-brand { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 6px; }
+.rp-header-brand img { height: 44px; width: auto; display: block; }
 .rp-header h1 { font-size: 1.25rem; color: var(--primary); margin-bottom: 4px; }
 .rp-header p { color: var(--text-muted); font-size: .82rem; }
 

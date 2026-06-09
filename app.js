@@ -3,6 +3,9 @@
 /* ─── State ─── */
 let taskCount = 0;
 let planCount = 0;
+let logoDataURL  = null;
+let logoPngHex   = null;
+let logoDims     = { w: 0, h: 0 };
 
 /* ─── DOM refs ─── */
 const form           = document.getElementById('report-form');
@@ -16,12 +19,34 @@ const hoursEnd       = document.getElementById('hours-end');
 const hoursTotal     = document.getElementById('hours-total');
 const toast          = document.getElementById('toast');
 
+/* ─── Logo loader ─── */
+async function loadLogo() {
+  try {
+    const res = await fetch(new URL('logo.png', location.href).href);
+    if (!res.ok) return;
+    const buf   = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    logoPngHex  = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    const blob  = new Blob([buf], { type: 'image/png' });
+    logoDataURL = await new Promise(resolve => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.readAsDataURL(blob);
+    });
+    const img = new Image();
+    img.src = logoDataURL;
+    await new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+    logoDims = { w: img.naturalWidth, h: img.naturalHeight };
+  } catch { /* logo indisponível */ }
+}
+
 /* ─── Init ─── */
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('date').valueAsDate = new Date();
   addTask();
   addPlan();
   bindEvents();
+  loadLogo();
 });
 
 function bindEvents() {
@@ -196,6 +221,8 @@ function buildReportHTML(data, forExport = false) {
     body,div{font-family:Segoe UI,Calibri,Arial,sans-serif;font-size:11pt;color:#1e293b}
     .report-preview{max-width:700px;margin:0 auto;padding:32px 40px}
     .rp-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #4F6EF7}
+    .rp-header-brand{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px}
+    .rp-header-brand img{height:44px;width:auto;display:block}
     .rp-header h1{font-size:16pt;color:#4F6EF7;margin-bottom:4px}
     .rp-header p{color:#64748b;font-size:9pt}
     .rp-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-bottom:20px;padding:14px 16px;background:#f1f5f9;border-radius:8px}
@@ -219,10 +246,18 @@ function buildReportHTML(data, forExport = false) {
     .rp-footer{margin-top:28px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8pt;color:#64748b}
   </style>` : '';
 
+  const logoSrc   = forExport ? logoDataURL : 'logo.png';
+  const logoHtml  = logoSrc
+    ? `<img src="${logoSrc}" alt="Convictiva Comunicação" style="height:44px;width:auto;display:block;" />`
+    : '';
+
   return `${exportStyles}
   <div class="report-preview">
     <div class="rp-header">
-      <h1>Relatório de Atividades Diárias</h1>
+      <div class="rp-header-brand">
+        ${logoHtml}
+        <h1>Relatório de Atividades Diárias</h1>
+      </div>
       <p>Gerado em ${now}</p>
     </div>
     <div class="rp-meta">
@@ -310,6 +345,13 @@ function buildRTF(data) {
   s += '{\\colortbl;\\red79\\green110\\blue247;\\red100\\green116\\blue139;\\red241\\green245\\blue249;\\red30\\green41\\blue59;}\r\n';
   s += '\\f0\\fs22\\cf4\r\n';
 
+  if (logoPngHex && logoDims.w && logoDims.h) {
+    const twipsW = 3600;
+    const twipsH = Math.round(twipsW * logoDims.h / logoDims.w);
+    s += `\\pard\\qc{\\pict\\pngblip\\picw${logoDims.w}\\pich${logoDims.h}\\picwgoal${twipsW}\\picgoal${twipsH}\r\n${logoPngHex}}\\par\r\n`;
+  } else {
+    s += '\\pard\\qc{\\b\\fs24\\cf2 ' + r('Convictiva Comunicação') + '}\\par\r\n';
+  }
   s += '\\pard\\qc{\\b\\fs40\\cf1 ' + r('Relatório de Atividades Diárias') + '}\\par\r\n';
   s += '\\pard\\qc{\\fs18\\cf2 ' + r('Gerado em ' + now) + '}\\par\\par\r\n';
   s += '\\pard\\brdrb\\brdrs\\brdrw10\\brsp20 \\par\r\n';
