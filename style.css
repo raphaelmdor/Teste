@@ -484,16 +484,18 @@ textarea { resize: vertical; min-height: 80px; }
   .form-row { grid-template-columns: 1fr; }
   .form-row.narrow { grid-template-columns: 1fr 1fr 1fr; }
   .header-actions .btn > span:not(.chevron-icon) { display: none; }
+  .header-actions .btn { padding: 7px 10px; }
 }
 
 /* Mobile (até 600px): header compacto + tarefas em duas linhas */
 @media (max-width: 600px) {
   .main { padding: 14px 12px; }
   .header-inner { padding: 0 14px; gap: 8px; height: 52px; }
-  .logo { gap: 7px; font-size: .82rem; min-width: 0; flex: 1; overflow: hidden; }
-  .logo > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .header-logo { height: 24px; flex-shrink: 0; }
+  .logo { display: flex; align-items: center; gap: 7px; font-size: .82rem; min-width: 0; flex: 1; }
+  .logo > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .header-logo { height: 24px; width: auto; flex-shrink: 0; }
   .header-actions { flex-shrink: 0; gap: 4px; }
+  .header-actions .btn { padding: 6px 8px; }
   .task-row { flex-wrap: wrap; }
   .task-row input.task-desc { flex-basis: 100%; }
   .task-row input.task-hours { width: 84px; flex-shrink: 0; }
@@ -507,7 +509,6 @@ textarea { resize: vertical; min-height: 80px; }
   #report-form { padding: 0 12px 16px; }
   .panel-header { padding: 12px 14px; }
   .save-menu { min-width: 190px; }
-  .btn { padding: 6px 12px; }
 }
 
 /* Telas muito pequenas — iPhone SE / 375px */
